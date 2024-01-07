@@ -1,5 +1,5 @@
 # loading packages
-library(ggplot2)
+library(tmap)
 library(dplyr)
 library(sf)
 library(spData)
@@ -8,29 +8,63 @@ library(tidyr)
 df <- read.csv("data/leituras.csv") %>%
   separate_rows(origin, sep = ";")
 
-# Spatial object
+# Mapa -------------------------------------------------------------------------
 data("world")
 
-yr = 2023
-df <- df %>%
-  filter(year == yr)
+tmap_mode("plot")
 
+df_summary <- df %>%
+  distinct(origin, year)
 
-world_df <- world %>% filter(name_long %in% unique(df$origin))
+world_book <- world %>%
+  right_join(df_summary, by = c("name_long" = "origin"))
 
-mapa <- ggplot() +
-  geom_sf(data = world, fill = "grey", alpha = 0.5, color = "white") +
-  geom_sf(data = world_df, fill = "red", alpha = 0.5, color = "white") +
-  theme_void() +
-  labs(title = paste("Origem de autoras(es) das leituras de", yr)) +
-  theme(legend.position = "none")
+my_bb <- bb(c(-180, -90, 180, 90))
 
-mapa
-ggsave(paste0("figs/mapa_", yr, ".png"))
+base_world <- get_tiles(x = my_bb, zoom = 2,
+                        provider = "CartoDB.VoyagerNoLabels")
 
+base_map <- tm_shape(base_world) +
+  tm_rgb() +
+  tm_layout(frame = FALSE)
 
+book_animation <- base_map +
+  tm_shape(world_book, bbox = my_bb) +
+  tm_polygons(col = "book", palette = c(NA, "#440154FF"), alpha = .7, border.col = NA) +
+  tm_legend(show = FALSE) +
+  tm_facets(along = "year", free.coords = FALSE)
+
+tmap_animation(
+  book_animation, filename = "figs/book.gif", dpi = 300,
+  delay = 50, width = 2400, height = 1200
+)
+
+# "Esri.WorldTerrain"
+# "Esri.WorldTopoMap"
+# "Esri.OceanBasemap"
+## country division
+# "CartoDB.VoyagerNoLabels"
+# "OpenStreetMap"
+# "Esri.WorldGrayCanvas"
+
+# Graficos ---------------------------------------------------------------------
 df %>%
   distinct(author, gender) %>%
   group_by(gender) %>%
   summarize(length(gender))
+
+df_summary <- df %>%
+  group_by(year, gender) %>%
+  summarise(book = length(book))
+
+ggplot(df_summary, aes(x = year, y = book, fill = gender)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  scale_fill_viridis_d(alpha = .7) +
+  geom_text(aes(label = book), hjust = 1.5, color = "grey10",
+            position = position_dodge(0.9), size = 3.5) +
+  theme_minimal() +
+  coord_flip() +
+  labs(y = "", x = "", fill = "Gender")
+
+ggsave("figs/gender_year.png")
 

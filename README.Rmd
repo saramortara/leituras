@@ -1,0 +1,24 @@
+---
+title: "README"
+author: "Sara Mortara"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Leituras anuais
+
+Repositório para armazenar dados das leituras anuais. Desde 2020.
+
+## Número de livros por ano, divididos por gênero
+
+```{r geral, echo=FALSE}
+knitr::include_graphics("figs/gender_year.png")
+```
+
+## Origem de autoras/es por ano 
+
+![](figs/book.gif)
